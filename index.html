@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Lotomania - Próximo Milionário</title>
+    <style>
+        :root {
+            --primary-green: #209869;
+            --accent-red: #ff4d4d;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+
+        .api-status-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            background-color: #bbb;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .status-online { background-color: #28a745; box-shadow: 0 0 10px #28a745; }
+        .status-offline { background-color: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); }
+
+        .btn-test {
+            padding: 8px 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn-test:hover { background: #f9f9f9; border-color: #ccc; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .sidebar {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+
+        .game-list-item {
+            background: #fdfdfd;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            border: 1px solid #eee;
+            border-left: 5px solid var(--primary-green);
+        }
+
+        .game-numbers {
+            word-break: break-all;
+            color: #555;
+            margin-top: 8px;
+            font-family: monospace;
+            background: #f1f1f1;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .search-box {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 15px;
+        }
+
+        input[type="number"] {
+            flex-grow: 1;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        input[type="number"]:focus { border-color: var(--primary-green); }
+
+        .btn-search {
+            background: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 0 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .result-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .result-card:hover { transform: translateY(-5px); }
+
+        .hit-count {
+            font-size: 40px;
+            font-weight: 900;
+            color: var(--primary-green);
+            margin: 5px 0;
+        }
+
+        .mirror-count {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed #eee;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1 style="margin:0; font-size: 24px;">📊 Lotomania Dashboard</h1>
+        <div class="api-status-area">
+            <div id="api-dot" class="status-dot"></div>
+            <button class="btn-test" onclick="testAPI()">TESTE DE API</button>
+        </div>
+    </header>
+
+    <div class="main-grid">
+        <aside class="sidebar">
+            <h2 style="font-size: 18px; margin-top: 0; border-bottom: 2px solid var(--primary-green); padding-bottom: 10px;">Meus 5 Jogos Atuais</h2>
+            <div id="game-display-list"></div>
+        </aside>
+
+        <div class="content-area">
+            <div class="search-box">
+                <input type="number" id="concurso-input" placeholder="Digite o nº do concurso (ex: 2911)">
+                <button class="btn-search" onclick="checkConcurso()">Verificar Acertos</button>
+            </div>
+            
+            <div id="info-sorteio" style="text-align: center; min-height: 40px;"></div>
+            
+            <div class="results-grid" id="results-container">
+                </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Configuração dos Seus Jogos
+    const meusJogos = [
+        { id: 1, nome: "Diagonal Principal", dezenas: [1, 2, 4, 5, 8, 10, 11, 12, 14, 15, 18, 20, 21, 23, 24, 25, 31, 32, 33, 35, 41, 42, 44, 45, 48, 52, 56, 57, 58, 60, 63, 66, 67, 69, 70, 75, 76, 78, 79, 80, 84, 86, 87, 89, 90, 91, 96, 98, 99, 0] },
+        { id: 2, nome: "Inversão Diagonal", dezenas: [6, 7, 8, 9, 10, 16, 17, 19, 20, 26, 27, 28, 30, 36, 37, 39, 40, 46, 47, 49, 51, 52, 53, 54, 55, 61, 62, 64, 65, 71, 72, 73, 75, 81, 82, 83, 85, 91, 92, 94, 1, 5, 12, 45, 58, 60, 78, 80, 99, 0] },
+        { id: 3, nome: "Compressão Central", dezenas: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70] },
+        { id: 4, nome: "Salto de Cavalaria", dezenas: [1, 3, 5, 6, 8, 10, 11, 13, 15, 16, 18, 20, 21, 23, 25, 26, 28, 30, 31, 33, 35, 36, 38, 40, 41, 43, 45, 46, 48, 50, 51, 53, 55, 56, 58, 60, 61, 63, 65, 71, 73, 75, 81, 83, 85, 91, 93, 95, 98, 0] },
+        { id: 5, nome: "Moldura Externa", dezenas: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 19, 20, 21, 22, 29, 30, 31, 32, 39, 40, 41, 42, 49, 50, 51, 52, 59, 60, 61, 62, 69, 70, 71, 72, 79, 80, 81, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 0] }
+    ];
+
+    // Renderizar lista de jogos na lateral ao carregar
+    const listContainer = document.getElementById('game-display-list');
+    meusJogos.forEach(j => {
+        listContainer.innerHTML += `
+            <div class="game-list-item">
+                <strong>Jogo ${j.id}: ${j.nome}</strong>
+                <div class="game-numbers">${j.dezenas.map(n => n.toString().padStart(2, '0')).join(' ')}</div>
+            </div>
+        `;
+    });
+
+    // Função para Testar a API
+    async function testAPI() {
+        const dot = document.getElementById('api-dot');
+        dot.className = 'status-dot'; // Reset para cinza
+        try {
+            const resp = await fetch('https://loterica.com.br/api/lotomania/latest');
+            if (resp.ok) {
+                dot.classList.add('status-online');
+            } else {
+                dot.classList.add('status-offline');
+            }
+        } catch (e) {
+            dot.classList.add('status-offline');
+        }
+    }
+
+    // Função de Verificação de Acertos
+    async function checkConcurso() {
+        const num = document.getElementById('concurso-input').value;
+        const resultsArea = document.getElementById('results-container');
+        const infoArea = document.getElementById('info-sorteio');
+        
+        if(!num) {
+            alert("Por favor, digite o número do concurso.");
+            return;
+        }
+
+        resultsArea.innerHTML = "<p style='grid-column: 1/-1;'>Buscando dados no servidor...</p>";
+        infoArea.innerHTML = "";
+        
+        try {
+            // API pública para consulta
+            const resp = await fetch(`https://loterica.com.br/api/lotomania/${num}`);
+            const data = await resp.json();
+
+            if(!data || !data.dezenas) {
+                resultsArea.innerHTML = "<p style='grid-column: 1/-1; color:red;'>Erro: Concurso não encontrado ou API fora do ar.</p>";
+                return;
+            }
+
+            const sorteados = data.dezenas.map(Number);
+            infoArea.innerHTML = `<p>Resultado Concurso <strong>${num}</strong> (${data.data}):<br>
+                <span style="color:var(--primary-green); font-weight:bold;">${data.dezenas.join(' - ')}</span></p>`;
+            
+            resultsArea.innerHTML = "";
+
+            meusJogos.forEach(j => {
+                const acertos = j.dezenas.filter(n => sorteados.includes(n)).length;
+                const espelho = 20 - acertos;
+                
+                // Destaque se houver premiação (acima de 15 na principal ou no espelho)
+                const isWinner = (acertos >= 15 || espelho >= 15);
+                const bgStyle = isWinner ? "border: 2px solid gold; background: #fffdf0;" : "";
+
+                resultsArea.innerHTML += `
+                    <div class="result-card" style="${bgStyle}">
+                        <h3 style="margin-top:0; font-size:16px;">Jogo ${j.id}</h3>
+                        <div class="hit-count">${acertos}</div>
+                        <div style="font-size:11px; font-weight:bold; color:#999;">ACERTOS</div>
+                        <div class="mirror-count">Aposta Espelho: <strong>${espelho} pts</strong></div>
+                    </div>
+                `;
+            });
+        } catch (e) {
+            resultsArea.innerHTML = "<p style='grid-column: 1/-1; color:red;'>Falha na conexão com a API de Loterias.</p>";
+        }
+    }
+
+    // Executa teste de API ao abrir
+    testAPI();
+</script>
+
+</body>
+</html>
